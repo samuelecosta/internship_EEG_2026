@@ -1,21 +1,22 @@
-Working setup
-\`\`\`text
+Working setup:
+
+```
 main_dir/
-├── ERCEM321_Atreyu/                      <-- Atreyu folder
+├── ERCEM321_Atreyu/
 │   ├── build/
-│   │   ├── bin/Release/                  
-│   │   └── lib/                          
+│   │   ├── bin/Release/
+│   │   └── lib/
 │   └── Examples/
 │       └── matlab_shared_lib_ThreeLayers/
 │           ├── aux/
 │           ├── mesh/
 │           └── matlab_shared_lib_ThreeLayers.h
 │
-└── my_dir/                               <-- This repo
+└── my_dir/
     ├── scripts/
-    │   └── matlab/                       
+    │   └── matlab/
     └── datasets/
         └── tvb_default/
-            ├── h5_files/                 
+            ├── h5_files/
             └── msh_files/
-\`\`\`
+```
