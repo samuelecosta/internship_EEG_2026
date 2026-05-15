@@ -20,3 +20,5 @@ main_dir/
             ├── h5_files/
             └── msh_files/
 ```
+
+The TVB python code has to be used inside TVB jupyter notebook
