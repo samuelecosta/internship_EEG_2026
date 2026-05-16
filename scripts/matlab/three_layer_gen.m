@@ -89,11 +89,6 @@ funcSpacePyramid1 = calllib(library_name, 'createFunctionalSpacePyramid', space1
 funcSpacePyramid2 = calllib(library_name, 'createFunctionalSpacePyramid', space2);
 funcSpacePyramid3 = calllib(library_name, 'createFunctionalSpacePyramid', space3);
 
-
-funcSpaceGradPyramid1 = calllib(library_name, 'createFunctionalSpaceGradPyramid', space1);
-funcSpaceGradPyramid2 = calllib(library_name, 'createFunctionalSpaceGradPyramid', space2);
-funcSpaceGradPyramid3 = calllib(library_name, 'createFunctionalSpaceGradPyramid', space3);
-
 nc1 = calllib(library_name, 'getNbPatchFunctions', funcSpacePatch1);
 nc2 = calllib(library_name, 'getNbPatchFunctions', funcSpacePatch2);
 nc3 = calllib(library_name, 'getNbPatchFunctions', funcSpacePatch3);
@@ -105,66 +100,6 @@ nv3 = calllib(library_name, 'getNbPyramidFunctions', funcSpacePyramid3);
 
 nctot = nc1 + nc2 + nc3;
 nvtot = nv1 + nv2 + nv3;
-
-%% Evaluate h parameter
-
-x1 = zeros(nv1,1); y1 = zeros(nv1,1); z1 = zeros(nv1,1);
-[x1, y1, z1] = calllib(library_name, 'getVertices',...
-    x1, y1, z1, space1);
-points1 = [x1, y1, z1];
-
-x2 = zeros(nv2,1); y2 = zeros(nv2,1); z2 = zeros(nv2,1);
-[x2, y2, z2] = calllib(library_name, 'getVertices',...
-    x2, y2, z2, space2);
-points2 = [x2, y2, z2];
-
-x3 = zeros(nv3,1); y3 = zeros(nv3,1); z3 = zeros(nv3,1);
-[x3, y3, z3] = calllib(library_name, 'getVertices',...
-    x3, y3, z3, space3);
-points3 = [x3, y3, z3];
-
-v1_a = zeros(nc1,1);
-v1_b = zeros(nc1,1);
-v1_c = zeros(nc1,1);
-[v1_a, v1_b, v1_c] = calllib(library_name, 'getCells',...
-    v1_a, v1_b, v1_c, space1);
-cells1 = [v1_a, v1_b, v1_c]+1;
-
-v2_a = zeros(nc2,1);
-v2_b = zeros(nc2,1);
-v2_c = zeros(nc2,1);
-[v2_a, v2_b, v2_c] = calllib(library_name, 'getCells',...
-    v2_a, v2_b, v2_c, space2);
-cells2 = [v2_a, v2_b, v2_c]+1;
-
-v3_a = zeros(nc3,1);
-v3_b = zeros(nc3,1);
-v3_c = zeros(nc3,1);
-[v3_a, v3_b, v3_c] = calllib(library_name, 'getCells',...
-    v3_a, v3_b, v3_c, space3);
-cells3 = [v3_a, v3_b, v3_c]+1;
-
-% h1
-edges1 = computeEdges(cells1);
-lengthE1 = getLengthEdges(edges1,points1);
-lengthSum1 = sum(lengthE1);
-h1 = lengthSum1/length(lengthE1);
-
-% h2
-edges2 = computeEdges(cells2);
-lengthE2 = getLengthEdges(edges2,points2);
-lengthSum2 = sum(lengthE2);
-h2 = lengthSum2/length(lengthE2);
-
-% h3
-edges3 = computeEdges(cells3);
-lengthE3 = getLengthEdges(edges3,points3);
-lengthSum3 = sum(lengthE3);
-h3 = lengthSum3/length(lengthE3);
-
-hlist = (h1+h2+h3)/3;
-
-N_list = nvtot+nctot; %number of unknowns
 
 %% S matrices
 if(exist('Ssph_real.mat','file')~=2)
@@ -297,3 +232,35 @@ fileName = 'G_three_layers.mat';
 fullPath = fullfile(mat_dir, fileName);
 
 save(fullPath, 'G_three_layers', '-v7.3');
+
+%% visuals
+
+figure;
+% Using a logarithmic scale because the values span several orders of magnitude
+imagesc(log10(abs(full(Z)))); 
+colormap('jet'); 
+colorbar;
+title('Block Structure of the BEM Matrix (Log Scale)');
+xlabel('Unknown Indices');
+ylabel('Unknown Indices');
+axis square;
+
+s = svd(full(Z));
+figure;
+plot(1:length(s), log10(s), 'b.-', 'MarkerSize', 10, 'LineWidth', 1.5);
+grid on;
+title('Singular Values Spectrum of the Z Matrix');
+xlabel('Singular Value Index');
+ylabel('Log_{10}(Singular Value)');
+
+dipole_idx = 1000; 
+potential_distribution = G_three_layers(:, dipole_idx);
+
+figure('Name', 'Scalp Potential', 'Color', 'w');
+trisurf(cells3, points3(:,1), points3(:,2), points3(:,3), potential_distribution);
+shading interp;
+colormap('parula');
+colorbar;
+title(sprintf('Potential Distribution on the Scalp (Dipole %d)', dipole_idx));
+axis equal off;
+light; lighting gouraud;

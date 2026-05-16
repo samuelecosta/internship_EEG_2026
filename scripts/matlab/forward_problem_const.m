@@ -89,6 +89,10 @@ for i = 1:n_surf
     idx = last_idx + 1;
 end
 
+all_v1 = zeros(n_total, 3);
+all_v2 = zeros(n_total, 3);
+all_v3 = zeros(n_total, 3);
+
 idx_v = 1;
 for i = 1:n_surf
     p1 = bnd(i).v(bnd(i).f(:, 1), :);
@@ -102,6 +106,8 @@ for i = 1:n_surf
     
     idx_v = idx_v + n_t;
 end
+
+% assemble B matrix (solid angle)
 
 B = zeros(n_total,n_total);
 
@@ -199,3 +205,29 @@ G_first_BEM = G_first_BEM - mean(G_first_BEM, 1);
 G_name = "First_BEM.mat";
 G_path = fullfile(mat_dir, G_name);
 save(G_path, 'G_first_BEM');
+
+%% A visual
+
+figure
+imagesc(abs(A));
+colormap('parula');
+cb = colorbar;
+ylabel(cb, 'Absolute Value Magnitude');
+
+% Add lines to highlight the 3 bnd (Brain, Skull, Scalp)
+hold on;
+b1_idx = size(bnd(1).f,1);
+b2_idx = size(bnd(1).f,1) + size(bnd(2).f,1);
+
+% Vertical separators
+xline(b1_idx, 'w--', 'LineWidth', 1.5);
+xline(b2_idx, 'w--', 'LineWidth', 1.5);
+% Horizontal separators
+yline(b1_idx, 'w--', 'LineWidth', 1.5);
+yline(b2_idx, 'w--', 'LineWidth', 1.5);
+hold off;
+
+title('Structure of the BEM Matrix A (Constant Elements)');
+xlabel('Triangle Index (Observation)');
+ylabel('Triangle Index (Integration)');
+axis square;
