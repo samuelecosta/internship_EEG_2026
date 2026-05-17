@@ -113,7 +113,7 @@ title(sprintf('Sensor %d Signal Comparison (Dipole %d)', best_sensor, src_idx));
 xlabel('Time (s)'); ylabel('Potential (V)');
 legend('Constant BEM', 'Symmetric BEM', 'TVB (Reference)', 'Location', 'best');
 grid on;
-%exportgraphics(fig1, fullfile(results_dir,'Timeseries_Comparison.pdf'), 'ContentType', 'vector');
+exportgraphics(fig1, fullfile(results_dir,'Timeseries_Comparison.pdf'), 'ContentType', 'vector');
 
 %% 3D Topographic Maps
 c_max = max([max(abs(V_my_peak)), max(abs(V_sym_3_peak)), max(abs(V_tvb_peak))]);
@@ -127,15 +127,11 @@ titles = {'Constant BEM', 'Symmetric BEM', 'TVB (Reference)'};
 for i = 1:3
     subplot(1, 3, i);
     
-    % Create a 3D interpolator to map sensor values to the full scalp mesh
-    % 'natural' method provides smooth, artifact-free transitions
     F = scatteredInterpolant(sensors(1,:)', sensors(2,:)', sensors(3,:)', ...
                              peak_data{i}, 'natural', 'nearest');
     
-    % Evaluate the potentials on all scalp vertices
     V_scalp_interp = F(bnd_v(1,:)', bnd_v(2,:)', bnd_v(3,:)');
     
-    % Plot the scalp mesh with interpolated colors
     patch('Vertices', bnd_v', 'Faces', bnd_f, ...
           'FaceVertexCData', V_scalp_interp, ...
           'FaceColor', 'interp', ...
@@ -154,7 +150,6 @@ for i = 1:3
     quiver3(x_src, y_src, z_src, n_vec(1), n_vec(2), n_vec(3), 0.02, ...
             'Color', 'k', 'LineWidth', 1.5, 'MaxHeadSize', 2); % Black border for contrast
     
-    % Enhance lighting and materials
     colormap('jet'); 
     clim([c_min, c_max]); 
     title(titles{i}, 'FontSize', 14, 'FontWeight', 'bold'); 
@@ -167,10 +162,9 @@ for i = 1:3
     lighting gouraud;
 end
 
-% Add a unified colorbar
 cb = colorbar('southoutside');
 cb.Position = [0.3 0.08 0.4 0.03];
 cb.Label.String = 'Electrical Potential (V)';
 cb.Label.FontSize = 12;
 
-%exportgraphics(fig2, fullfile(results_dir,'Topography_Comparison_Unified.pdf'), 'ContentType', 'vector');
+exportgraphics(fig2, fullfile(results_dir,'Topography_Comparison_Unified.pdf'), 'ContentType', 'vector');

@@ -36,7 +36,7 @@ G_tvb_centered = G_tvb - mean(G_tvb, 1);
 
 %% Pre-calc
 
-SNR_levels = [5, 10, 15, 25]; 
+SNR_levels = [0, 5, 10, 15, 25]; 
 n_snr = length(SNR_levels);
 
 n_sources = size(surf_struct.cortical_surface.vertices, 2);
@@ -152,7 +152,7 @@ for snr_idx = 1:n_snr
             end
         end
         tmp_filename = sprintf('Inverse_ED1_%s_SNR_%02d.pdf', method_name, current_SNR);
-        %exportgraphics(fig, fullfile(results_dir, tmp_filename), 'ContentType', 'image', 'Resolution', 600);
+        exportgraphics(fig, fullfile(results_dir, tmp_filename), 'ContentType', 'image', 'Resolution', 600);
     end
 end
 
@@ -189,4 +189,4 @@ ylabel('Median ED2 (mm)');
 legend('Location', 'northeast');
 set(gca, 'XDir', 'reverse');
 
-%exportgraphics(fig_tr, fullfile(results_dir, 'Performance_Trends_vs_SNR.pdf'), 'ContentType', 'vector');
+exportgraphics(fig_tr, fullfile(results_dir, 'Performance_Trends_vs_SNR.pdf'), 'ContentType', 'vector');

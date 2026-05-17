@@ -7,6 +7,9 @@ atreyu_folder_name = 'ERCEM321_Atreyu';
 atreyu_path = fullfile(pwd, '..', atreyu_folder_name);
 atreyu_examples_path = fullfile(atreyu_path, 'Examples', 'matlab_shared_lib_ThreeLayers');
 
+results_dir = fullfile(pwd,'simulations','matlab');
+if ~exist(results_dir, 'dir'), mkdir(results_dir); end
+
 addpath(fullfile(atreyu_examples_path, 'aux'));
 addpath(fullfile(atreyu_examples_path, 'mesh'));
 
@@ -235,7 +238,7 @@ save(fullPath, 'G_three_layers', '-v7.3');
 
 %% visuals
 
-figure;
+fg1 = figure;
 % Using a logarithmic scale because the values span several orders of magnitude
 imagesc(log10(abs(full(Z)))); 
 colormap('jet'); 
@@ -245,18 +248,22 @@ xlabel('Unknown Indices');
 ylabel('Unknown Indices');
 axis square;
 
+exportgraphics(fig1, fullfile(results_dir,'block_struct_BEM_matr.pdf'), 'ContentType', 'vector');
+
 s = svd(full(Z));
-figure;
+fg2 = figure;
 plot(1:length(s), log10(s), 'b.-', 'MarkerSize', 10, 'LineWidth', 1.5);
 grid on;
 title('Singular Values Spectrum of the Z Matrix');
 xlabel('Singular Value Index');
 ylabel('Log_{10}(Singular Value)');
 
+exportgraphics(fig1, fullfile(results_dir,'Z_singular_values.pdf'), 'ContentType', 'vector');
+
 dipole_idx = 1000; 
 potential_distribution = G_three_layers(:, dipole_idx);
 
-figure('Name', 'Scalp Potential', 'Color', 'w');
+fg3 = figure;
 trisurf(cells3, points3(:,1), points3(:,2), points3(:,3), potential_distribution);
 shading interp;
 colormap('parula');
@@ -264,3 +271,5 @@ colorbar;
 title(sprintf('Potential Distribution on the Scalp (Dipole %d)', dipole_idx));
 axis equal off;
 light; lighting gouraud;
+
+exportgraphics(fig1, fullfile(results_dir,'pot_distribution_symBEM.pdf'), 'ContentType', 'vector');

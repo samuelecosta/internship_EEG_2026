@@ -7,6 +7,9 @@ dataset_dir = fullfile(pwd, 'datasets', 'tvb_default');
 h5_dir  = fullfile(dataset_dir, 'h5_files');
 mat_dir = fullfile(dataset_dir, 'mat_files');
 
+results_dir = fullfile(pwd,'simulations','matlab');
+if ~exist(results_dir, 'dir'), mkdir(results_dir); end
+
 struct_name = "Surfaces_structure.mat";
 struct_path = fullfile(mat_dir, struct_name);
 
@@ -208,7 +211,7 @@ save(G_path, 'G_first_BEM');
 
 %% A visual
 
-figure
+fig1 = figure;
 imagesc(abs(A));
 colormap('parula');
 cb = colorbar;
@@ -231,3 +234,5 @@ title('Structure of the BEM Matrix A (Constant Elements)');
 xlabel('Triangle Index (Observation)');
 ylabel('Triangle Index (Integration)');
 axis square;
+
+exportgraphics(fig1, fullfile(results_dir,'Const_BEM_A_visual.pdf'), 'ContentType', 'vector');

@@ -33,7 +33,7 @@ surface_geometry = default_cortex.region_mapping_data.surface
 surface_geometry.configure()
 
 # Target vertex configuration
-target_vertex = 100
+target_vertex = 499
 n_vertices = surface_geometry.vertices.shape[0]
 target_coords = surface_geometry.vertices[target_vertex]
 
@@ -105,7 +105,8 @@ scipy.io.savemat(mat_filepath, {
     'time': TIME,
     'target_vertex': target_vertex,
     'target_coords': target_coords,
-    'tvb_vertices': surface_geometry.vertices
+    'tvb_vertices': surface_geometry.vertices,
+    'activation_center': target_vertex
 })
 
 print(f"Data saved successfully to {mat_filepath}")
