@@ -248,7 +248,7 @@ xlabel('Unknown Indices');
 ylabel('Unknown Indices');
 axis square;
 
-exportgraphics(fig1, fullfile(results_dir,'block_struct_BEM_matr.pdf'), 'ContentType', 'vector');
+exportgraphics(fg1, fullfile(results_dir,'block_struct_BEM_matr.pdf'), 'ContentType', 'vector');
 
 s = svd(full(Z));
 fg2 = figure;
@@ -258,18 +258,4 @@ title('Singular Values Spectrum of the Z Matrix');
 xlabel('Singular Value Index');
 ylabel('Log_{10}(Singular Value)');
 
-exportgraphics(fig1, fullfile(results_dir,'Z_singular_values.pdf'), 'ContentType', 'vector');
-
-dipole_idx = 1000; 
-potential_distribution = G_three_layers(:, dipole_idx);
-
-fg3 = figure;
-trisurf(cells3, points3(:,1), points3(:,2), points3(:,3), potential_distribution);
-shading interp;
-colormap('parula');
-colorbar;
-title(sprintf('Potential Distribution on the Scalp (Dipole %d)', dipole_idx));
-axis equal off;
-light; lighting gouraud;
-
-exportgraphics(fig1, fullfile(results_dir,'pot_distribution_symBEM.pdf'), 'ContentType', 'vector');
+exportgraphics(fg2, fullfile(results_dir,'Z_singular_values.pdf'), 'ContentType', 'vector');
