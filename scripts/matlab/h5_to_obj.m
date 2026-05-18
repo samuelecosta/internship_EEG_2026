@@ -47,9 +47,7 @@ for i = 1:length(surf_names)
         end
             
         if isfield(temp_surf, 'vertices')
-            verts = temp_surf.vertices;
-            if size(verts, 2) ~= 3, verts = verts'; end
-            fprintf(fid, 'v %f %f %f\n', verts');
+            fprintf(fid, 'v %f %f %f\n', temp_surf.vertices);
         else
             error('Vertices missing.');
         end
@@ -63,12 +61,6 @@ for i = 1:length(surf_names)
             
         if isfield(temp_surf, 'triangles')
             F = double(temp_surf.triangles + 1);
-            if size(F, 2) ~= 3, F = F'; end
-
-            [F, was_flipped] = auto_fix_winding(verts, F);
-            if was_flipped
-                fprintf(' -> [Auto-Fix] Winding invertito per: %s\n', entity_name);
-            end
                 
             if has_normals
                 face_data = [F(1,:); F(1,:); F(2,:); F(2,:); F(3,:); F(3,:)];

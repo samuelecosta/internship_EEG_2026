@@ -40,17 +40,11 @@ target_coords = surface_geometry.vertices[target_vertex]
 # Find the first triangle that contains the target_vertex
 target_triangle = np.where(surface_geometry.triangles == target_vertex)[0][0]
 
-actual_simulation_length = 500.0  # ms di dati finali che verranno salvati nel .mat
-burn_in_length = 500.0            # ms di transitorio iniziale da calcolare e poi nascondere
-total_length = actual_simulation_length + burn_in_length
-
 # Spatial Gaussian equation (spread = 15.0 mm).
 eqn_s = equations.Gaussian(parameters={"amp": 1.0, "sigma": 15.0, "midpoint": 0.0, "offset": 0.0})
 
-# Temporal profile: A 50ms spike spostato DOPO il burn-in!
-# Impostiamo il midpoint a 1250.0 ms (così apparirà a t=250 ms nei grafici finali)
-spike_time = burn_in_length + (actual_simulation_length / 2.0)
-eqn_t = equations.Gaussian(parameters={"amp": 5.0, "sigma": 10.0, "midpoint": spike_time, "offset": 0.0})
+# Temporal profile: A 50ms spike in the middle of the simulation.
+eqn_t = equations.Gaussian(parameters={"amp": 5.0, "sigma": 10.0, "midpoint": 250.0, "offset": 0.0})
 
 # Initialize the stimulus using the correct kwargs and TVB Equation objects
 # Force dtype=int for the triangle index to be safe
@@ -79,7 +73,7 @@ sim = simulator.Simulator(
     monitors=what_to_watch, 
     surface=default_cortex, 
     stimulus=stimulus,
-    simulation_length=total_length
+    simulation_length=500.0
 )
 
 sim.configure()
@@ -98,18 +92,10 @@ for source_data, eeg_data in sim():
     if eeg_data is not None:
         all_eeg.append(eeg_data[1][0, :, 0])
 
-SOURCES_RAW = np.array(all_sources) 
-EEG_RAW = np.array(all_eeg)         
-TIME_RAW = np.array(time_vector)
 
-burn_in_idx = np.argmax(TIME_RAW >= burn_in_length)
-
-# Teniamo solo i dati successivi al burn-in
-SOURCES = SOURCES_RAW[burn_in_idx:, :]
-EEG = EEG_RAW[burn_in_idx:, :]
-
-# Tagliamo il tempo e lo facciamo ripartire da 0
-TIME = TIME_RAW[burn_in_idx:] - TIME_RAW[burn_in_idx]
+SOURCES = np.array(all_sources) # Shape: (time, vertices)
+EEG = np.array(all_eeg)         # Shape: (time, sensors)
+TIME = np.array(time_vector)
 
 mat_filepath = os.path.join(mat_dir, "tvb_validation_data.mat")
 

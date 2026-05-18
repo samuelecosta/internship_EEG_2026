@@ -59,11 +59,6 @@ for i = 1:length(surf_names)
                 faces = faces';
         end
 
-        [faces, was_flipped] = auto_fix_winding(verts, faces);
-        if was_flipped
-            fprintf(' -> [Auto-Fix] normals direction for: %s\n', entity_name);
-        end
-
         TR = triangulation(faces, verts);
 
         stlwrite(TR, file_path);

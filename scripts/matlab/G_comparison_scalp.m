@@ -84,6 +84,8 @@ V_my = G_my_sens(:, src_idx) * dipole_moment;
 V_sym_3 = G_sym_sens(:, src_idx) * dipole_moment;
 V_tvb = G_tvb(:, src_idx) * dipole_moment;
 
+V_sym_3 = -V_sym_3; 
+
 V_my = V_my - mean(V_my, 1);
 V_sym_3 = V_sym_3 - mean(V_sym_3, 1);
 V_tvb = V_tvb - mean(V_tvb, 1);
