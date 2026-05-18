@@ -33,8 +33,8 @@ save(struct_path, "surf_struct", "-v7.3");
 %% surf check
 %to see geometry and normals direction
 
-vertices = surf_struct.cortical_surface.vertices;
-mom_vertices = surf_struct.cortical_surface.vertex_normals;
+vertices = surf_struct.skin_air.vertices;
+mom_vertices = surf_struct.skin_air.vertex_normals;
 
 figure;
 
