@@ -54,7 +54,7 @@ c_f = double(surf_struct.cortical_surface.triangles' + 1);
 if size(c_v,2) ~= 3, c_v = c_v.'; end
 if size(c_f,2) ~= 3, c_f = c_f.'; end
 TR = triangulation(c_f, c_v);
-VN = vertexNormal(TR); 
+VN = -vertexNormal(TR); 
 view_angles = {[-90, 0], [90, 0], [0, 90], [0, -90]};
 view_names = {'Rear', 'Front', 'Superior (Top)', 'Inferior (Bottom)'};
 
@@ -92,20 +92,26 @@ for snr_idx = 1:n_snr
         dist_all = vecnorm(pos_sources - real_source, 2, 1)';
         
         % Inversions
-        D_pinv = T_pinv * M;
-        D_MNE = T_MNE * M;
-        D_WMNE = T_WMNE * M;
-        D_sLOR = D_MNE ./ sqrt(diag_R);
+        D_pinv_signed = T_pinv * M;
+        D_MNE_signed = T_MNE * M;
+        D_WMNE_signed = T_WMNE * M;
+        D_sLOR_signed = D_MNE_signed ./ sqrt(diag_R);
+
+        D_pinv = D_pinv_signed.^2;
+        D_MNE = D_MNE_signed.^2;
+        D_WMNE = D_WMNE_signed.^2;
+        D_sLOR = D_sLOR_signed.^2;
         
         estimates = {D_pinv, D_MNE, D_WMNE, D_sLOR};
         
         for m = 1:4
             D_vec = estimates{m};
-
-            [~, idx_max] = max(abs(D_vec));
+            [~, idx_max] = max(D_vec); 
             ed1_curr(n, m) = dist_all(idx_max);
 
-            ed2_curr(n, m) = sum(dist_all .* (D_vec.^2 / sum(D_vec.^2)));
+            energy_sum = sum(D_vec);
+            if energy_sum == 0, energy_sum = eps; end
+            ed2_curr(n, m) = sum(dist_all .* (D_vec / energy_sum));
         end
         
         if mod(n, 2000) == 0

@@ -20,7 +20,7 @@ struct_path = fullfile(mat_dir, struct_name);
 surf_struct = h5_load_surf(h5_dir);
 
 h5_to_stl(surf_struct, stl_dir);
-h5_to_obj(surf_struct, obj_dir)
+h5_to_obj(surf_struct, obj_dir);
 
 sensor_name = "Sensors_EEG.h5";
 sensor_path = fullfile(h5_dir, sensor_name);

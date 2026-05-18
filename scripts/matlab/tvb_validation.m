@@ -16,7 +16,6 @@ J_true_raw = double(tvb_data.J_true);
 time = double(tvb_data.time);
 n_time = length(time);
 
-J_true_raw = J_true_raw - mean(J_true_raw, 2);
 J_true_norm_factor = max(abs(J_true_raw(:)));
 if J_true_norm_factor > 0
     J_true_raw = J_true_raw / J_true_norm_factor;
@@ -107,27 +106,31 @@ for snr_idx = 1:n_snr
         noise_power = var(M_clean(:)) / (10^(current_SNR/10));
         noise = sqrt(noise_power) * randn(size(M_clean));
         M_noisy = M_clean + noise;
-        
-        % Inversione
-        J_est = (T_sLOR * M_noisy);
-        J_est = J_est - mean(J_est, 2); 
-        J_est_norm_factor = max(abs(J_est(:)));
-        if J_est_norm_factor > 0
-            J_est = J_est / J_est_norm_factor;
+
+        J_est_signed = (T_sLOR * M_noisy);
+        J_est_power = J_est_signed.^2; 
+
+        max_pow = max(J_est_power(:));
+        if max_pow > 0
+            J_est_power = J_est_power / max_pow;
         end
         
-        J_est_peak = abs(J_est(:, peak_time_idx));
+        J_est_peak = J_est_power(:, peak_time_idx);
         [~, est_max_idx] = max(J_est_peak);
         
         t_ed1(trial) = dist_from_target(est_max_idx) * 1000; 
         
-        energy_sum = sum(J_est_peak.^2);
+        energy_sum = sum(J_est_peak);
         if energy_sum == 0, energy_sum = eps; end
-        t_ed2(trial) = sum(dist_from_target .* (J_est_peak.^2 / energy_sum)) * 1000;
-        
+        t_ed2(trial) = sum(dist_from_target .* (J_est_peak / energy_sum)) * 1000;
+
         ts_true = J_true_mapped(target_idx, :);
-        ts_est  = J_est(est_max_idx, :);
-        r = corrcoef(ts_true, ts_est);
+        ts_est  = J_est_signed(est_max_idx, :);
+        
+        ts_true_centered = ts_true - mean(ts_true);
+        ts_est_centered = ts_est - mean(ts_est);
+        
+        r = corrcoef(ts_true_centered, ts_est_centered);
         t_corr(trial) = r(1,2);
     end
     
@@ -144,6 +147,13 @@ for snr_idx = 1:n_snr
     err_pos_Corr(snr_idx) = prctile(t_corr, 75) - Temp_Corr_trend(snr_idx);
     
     if current_SNR == 10
+
+        figure
+        subplot(2,1,1)
+        plot(time,J_true_mapped)
+        subplot(2,1,2)
+        plot(time,J_est_power)
+
         fig_3d = figure;
         fig_3d.WindowState = 'maximized';
         
@@ -162,6 +172,11 @@ for snr_idx = 1:n_snr
             'FontSize', 14, 'FontWeight', 'bold');
         
         J_true_peak = abs(J_true_mapped(:, peak_time_idx));
+
+        J_true_peak = J_true_peak - min(J_true_peak); 
+        if max(J_true_peak) > 0
+            J_true_peak = J_true_peak / max(J_true_peak);
+        end
         cmax = 1.0; 
         
         ax1 = nexttile;

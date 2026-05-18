@@ -65,17 +65,11 @@ nCells2 = size(cells2,1);
 nPoints3 = size(points3,1);
 nCells3 = size(cells3,1);
 
-if(exist(brain_skull_gmsh,'file')~=2)
-    gmsh_mesh3d_write(brain_skull_gmsh, dim1, nPoints1, points1, nNode1, nCells1, cells1);
-end
+gmsh_mesh3d_write(brain_skull_gmsh, dim1, nPoints1, points1, nNode1, nCells1, cells1);
 
-if(exist(skull_skin_gmsh,'file')~=2)
-    gmsh_mesh3d_write(skull_skin_gmsh, dim2, nPoints2, points2, nNode2, nCells2, cells2);
-end
+gmsh_mesh3d_write(skull_skin_gmsh, dim2, nPoints2, points2, nNode2, nCells2, cells2);
 
-if(exist(skin_air_gmsh,'file')~=2)
-    gmsh_mesh3d_write(skin_air_gmsh, dim3, nPoints3, points3, nNode3, nCells3, cells3);
-end
+gmsh_mesh3d_write(skin_air_gmsh, dim3, nPoints3, points3, nNode3, nCells3, cells3);
 
 space1 = calllib(library_name, 'createSpace', brain_skull_gmsh);
 space2 = calllib(library_name, 'createSpace', skull_skin_gmsh);
@@ -105,64 +99,55 @@ nctot = nc1 + nc2 + nc3;
 nvtot = nv1 + nv2 + nv3;
 
 %% S matrices
-if(exist('Ssph_real.mat','file')~=2)
-    Z_R=zeros(nc1,nc1); Z_I=zeros(nc1,nc1);
-    [Z_R, ~] = calllib(library_name, 'computeSPatch', Z_R, Z_I, funcSpacePatch1, funcSpacePatch1); S11 = Z_R;
-    
-    Z_R=zeros(nc1,nc2); Z_I=zeros(nc1,nc2);
-    [Z_R, ~] = calllib(library_name, 'computeSPatch', Z_R, Z_I, funcSpacePatch1, funcSpacePatch2); S12 = Z_R;
-    S21 = S12';
-    
-    Z_R=zeros(nc2,nc2); Z_I=zeros(nc2,nc2);
-    [Z_R, ~] = calllib(library_name, 'computeSPatch', Z_R, Z_I, funcSpacePatch2, funcSpacePatch2); S22 = Z_R;
-    save('Ssph_real.mat', 'S11','S12','S21','S22');
-else
-    load('Ssph_real.mat');
-end
+Z_R=zeros(nc1,nc1); Z_I=zeros(nc1,nc1);
+[Z_R, ~] = calllib(library_name, 'computeSPatch', Z_R, Z_I, funcSpacePatch1, funcSpacePatch1); S11 = Z_R;
+
+Z_R=zeros(nc1,nc2); Z_I=zeros(nc1,nc2);
+[Z_R, ~] = calllib(library_name, 'computeSPatch', Z_R, Z_I, funcSpacePatch1, funcSpacePatch2); S12 = Z_R;
+S21 = S12';
+
+Z_R=zeros(nc2,nc2); Z_I=zeros(nc2,nc2);
+[Z_R, ~] = calllib(library_name, 'computeSPatch', Z_R, Z_I, funcSpacePatch2, funcSpacePatch2); S22 = Z_R;
+save('Ssph_real.mat', 'S11','S12','S21','S22');
 
 %% N matrices
-if(exist('Nsph_real.mat','file')~=2)
-    Z_R=zeros(nv1,nv1); Z_I=zeros(nv1,nv1);
-    [Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid1, funcSpacePyramid1); N11 = Z_R;
-    
-    Z_R=zeros(nv1,nv2); Z_I=zeros(nv1,nv2);
-    [Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid1, funcSpacePyramid2); N12 = Z_R;
-    N21 = N12';
-    
-    Z_R=zeros(nv2,nv2); Z_I=zeros(nv2,nv2);
-    [Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid2, funcSpacePyramid2); N22 = Z_R;
-    
-    Z_R=zeros(nv2,nv3); Z_I=zeros(nv2,nv3);
-    [Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid2, funcSpacePyramid3); N23 = Z_R;
-    N32 = N23';
-    
-    Z_R=zeros(nv3,nv3); Z_I=zeros(nv3,nv3);
-    [Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid3, funcSpacePyramid3); N33 = Z_R;
-    save('Nsph_real.mat', 'N11','N12','N21','N22','N23','N32','N33');
-else
-    load('Nsph_real.mat');
-end
+
+Z_R=zeros(nv1,nv1); Z_I=zeros(nv1,nv1);
+[Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid1, funcSpacePyramid1); N11 = Z_R;
+
+Z_R=zeros(nv1,nv2); Z_I=zeros(nv1,nv2);
+[Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid1, funcSpacePyramid2); N12 = Z_R;
+N21 = N12';
+
+Z_R=zeros(nv2,nv2); Z_I=zeros(nv2,nv2);
+[Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid2, funcSpacePyramid2); N22 = Z_R;
+
+Z_R=zeros(nv2,nv3); Z_I=zeros(nv2,nv3);
+[Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid2, funcSpacePyramid3); N23 = Z_R;
+N32 = N23';
+
+Z_R=zeros(nv3,nv3); Z_I=zeros(nv3,nv3);
+[Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid3, funcSpacePyramid3); N33 = Z_R;
+save('Nsph_real.mat', 'N11','N12','N21','N22','N23','N32','N33');
+
 
 %% D matrices
-if(exist('Dsph_real.mat','file')~=2)
-    Z_R=zeros(nc1,nv1); Z_I=zeros(nc1,nv1);
-    [Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch1, funcSpacePyramid1); D11 = Z_R; D11_compl=D11';
-    
-    Z_R=zeros(nc1,nv2); Z_I=zeros(nc1,nv2);
-    [Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch1, funcSpacePyramid2); D12 = Z_R; D21_compl=D12';
-    
-    Z_R=zeros(nc2,nv1); Z_I=zeros(nc2,nv1);
-    [Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch2, funcSpacePyramid1); D21 = Z_R; D12_compl=D21';
-    
-    Z_R=zeros(nc2,nv2); Z_I=zeros(nc2,nv2);
-    [Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch2, funcSpacePyramid2); D22 = Z_R; D22_compl=D22';
-    
-    Z_R=zeros(nc2,nv3); Z_I=zeros(nc2,nv3);
-    [Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch2, funcSpacePyramid3); D23 = Z_R; D32_compl=D23';
-    save('Dsph_real.mat', 'D11','D11_compl','D12','D21_compl','D21','D12_compl','D22','D22_compl','D23','D32_compl');
-else
-    load('Dsph_real.mat');
-end
+
+Z_R=zeros(nc1,nv1); Z_I=zeros(nc1,nv1);
+[Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch1, funcSpacePyramid1); D11 = Z_R; D11_compl=D11';
+
+Z_R=zeros(nc1,nv2); Z_I=zeros(nc1,nv2);
+[Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch1, funcSpacePyramid2); D12 = Z_R; D21_compl=D12';
+
+Z_R=zeros(nc2,nv1); Z_I=zeros(nc2,nv1);
+[Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch2, funcSpacePyramid1); D21 = Z_R; D12_compl=D21';
+
+Z_R=zeros(nc2,nv2); Z_I=zeros(nc2,nv2);
+[Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch2, funcSpacePyramid2); D22 = Z_R; D22_compl=D22';
+
+Z_R=zeros(nc2,nv3); Z_I=zeros(nc2,nv3);
+[Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch2, funcSpacePyramid3); D23 = Z_R; D32_compl=D23';
+save('Dsph_real.mat', 'D11','D11_compl','D12','D21_compl','D21','D12_compl','D22','D22_compl','D23','D32_compl');
 
 %% Compute G
 
