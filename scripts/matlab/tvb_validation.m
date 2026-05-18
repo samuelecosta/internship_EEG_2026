@@ -109,7 +109,7 @@ for snr_idx = 1:n_snr
         M_noisy = M_clean + noise;
         
         % Inversione
-        J_est = -(T_sLOR * M_noisy);
+        J_est = (T_sLOR * M_noisy);
         J_est = J_est - mean(J_est, 2); 
         J_est_norm_factor = max(abs(J_est(:)));
         if J_est_norm_factor > 0

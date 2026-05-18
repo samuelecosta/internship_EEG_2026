@@ -49,7 +49,17 @@ for i = 1:length(h5_files)
         surf_struct.(entity_name).triangles = tr;
         surf_struct.(entity_name).triangle_normals = tr_norm;
 
-        fprintf('Entity loaded correctly: %s\n', entity_name)
+        centroid = mean(surf_struct.(entity_name).vertices, 2);
+        vecs_from_center = surf_struct.(entity_name).vertices - centroid;
+        dot_products = dot(vecs_from_center, vert_norm);
+
+        if mean(dot_products) > 0
+            dir_msg = 'Outward';
+        else
+            dir_msg = 'Inward';
+        end
+
+        fprintf('Entity loaded correctly: %s | Normals direction: %s\n', entity_name, dir_msg);
         
     catch ME
         warning('Failed to open file: %s\n%s', entity_name,ME.message);

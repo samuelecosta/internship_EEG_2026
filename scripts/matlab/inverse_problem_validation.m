@@ -54,7 +54,7 @@ c_f = double(surf_struct.cortical_surface.triangles' + 1);
 if size(c_v,2) ~= 3, c_v = c_v.'; end
 if size(c_f,2) ~= 3, c_f = c_f.'; end
 TR = triangulation(c_f, c_v);
-VN = -vertexNormal(TR); 
+VN = vertexNormal(TR); 
 view_angles = {[-90, 0], [90, 0], [0, 90], [0, -90]};
 view_names = {'Rear', 'Front', 'Superior (Top)', 'Inferior (Bottom)'};
 
