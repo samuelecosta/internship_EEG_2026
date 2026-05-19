@@ -108,7 +108,6 @@ S21 = S12';
 
 Z_R=zeros(nc2,nc2); Z_I=zeros(nc2,nc2);
 [Z_R, ~] = calllib(library_name, 'computeSPatch', Z_R, Z_I, funcSpacePatch2, funcSpacePatch2); S22 = Z_R;
-save('Ssph_real.mat', 'S11','S12','S21','S22');
 
 %% N matrices
 
@@ -128,8 +127,6 @@ N32 = N23';
 
 Z_R=zeros(nv3,nv3); Z_I=zeros(nv3,nv3);
 [Z_R, ~] = calllib(library_name, 'computeNPyramid', Z_R, Z_I, funcSpacePyramid3, funcSpacePyramid3); N33 = Z_R;
-save('Nsph_real.mat', 'N11','N12','N21','N22','N23','N32','N33');
-
 
 %% D matrices
 
@@ -147,7 +144,6 @@ Z_R=zeros(nc2,nv2); Z_I=zeros(nc2,nv2);
 
 Z_R=zeros(nc2,nv3); Z_I=zeros(nc2,nv3);
 [Z_R, ~] = calllib(library_name, 'computeDPatchPyramid', Z_R, Z_I, funcSpacePatch2, funcSpacePyramid3); D23 = Z_R; D32_compl=D23';
-save('Dsph_real.mat', 'D11','D11_compl','D12','D21_compl','D21','D12_compl','D22','D22_compl','D23','D32_compl');
 
 %% Compute G
 

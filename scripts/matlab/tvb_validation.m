@@ -11,7 +11,7 @@ load(fullfile(mat_dir, "Surfaces_structure.mat"), 'surf_struct');
 load(fullfile(mat_dir, "G_three_layers.mat"), 'G_three_layers'); 
 G_tvb = h5read(fullfile(h5_dir, "ProjectionMatrix_EEG.h5"), "/projection_data")';
 
-tvb_data = load(fullfile(mat_dir, "tvb_epilepsy_data.mat")); %change this to select the data
+tvb_data = load(fullfile(mat_dir, "tvb_gaussian_patch_data.mat")); %change this to select the data
 J_true_raw = double(tvb_data.J_true); 
 time = double(tvb_data.time);
 n_time = length(time);
@@ -230,7 +230,7 @@ for snr_idx = 1:n_snr
 
         %change based on data
         tmp_filename = sprintf('tvb_validation_gaussian_SNR_%02d.pdf', current_SNR);
-        %exportgraphics(fig_3d, fullfile(results_dir, tmp_filename), 'ContentType', 'image', 'Resolution', 600);
+        exportgraphics(fig_3d, fullfile(results_dir, tmp_filename), 'ContentType', 'image', 'Resolution', 600);
     end
 end
 
@@ -272,4 +272,4 @@ set(gca, 'XDir', 'reverse'); ylim([0 1.1]);
 title('Spatio-Temporal Correlation'); xlabel('SNR (dB)'); ylabel('Pearson r'); 
 
 %change based on data
-%exportgraphics(fig_tr, fullfile(results_dir,'tvb_validation_gaussian_metrics.pdf'), 'ContentType', 'vector');
+exportgraphics(fig_tr, fullfile(results_dir,'tvb_validation_gaussian_metrics.pdf'), 'ContentType', 'vector');

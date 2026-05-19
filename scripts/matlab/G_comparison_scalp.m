@@ -111,7 +111,7 @@ title(sprintf('Sensor %d Signal Comparison (Dipole %d)', best_sensor, src_idx));
 xlabel('Time (s)'); ylabel('Potential (V)');
 legend('Constant BEM', 'Symmetric BEM', 'TVB (Reference)', 'Location', 'best');
 grid on;
-%exportgraphics(fig1, fullfile(results_dir,'Timeseries_Comparison.pdf'), 'ContentType', 'vector');
+exportgraphics(fig1, fullfile(results_dir,'Timeseries_Comparison.pdf'), 'ContentType', 'vector');
 
 %% 3D Topographic Maps
 c_max = max([max(abs(V_my_peak)), max(abs(V_sym_3_peak)), max(abs(V_tvb_peak))]);
@@ -165,4 +165,4 @@ cb.Position = [0.3 0.08 0.4 0.03];
 cb.Label.String = 'Electrical Potential (V)';
 cb.Label.FontSize = 12;
 
-%exportgraphics(fig2, fullfile(results_dir,'Topography_Comparison_Unified.pdf'), 'ContentType', 'vector');
+exportgraphics(fig2, fullfile(results_dir,'Topography_Comparison_Unified.pdf'), 'ContentType', 'vector');

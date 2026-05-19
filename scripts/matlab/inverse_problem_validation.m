@@ -162,7 +162,7 @@ for snr_idx = 1:n_snr
             end
         end
         tmp_filename = sprintf('Inverse_ED1_%s_SNR_%02d.pdf', method_name, current_SNR);
-        %exportgraphics(fig, fullfile(results_dir, tmp_filename), 'ContentType', 'image', 'Resolution', 600);
+        exportgraphics(fig, fullfile(results_dir, tmp_filename), 'ContentType', 'image', 'Resolution', 600);
     end
 end
 
@@ -199,4 +199,4 @@ ylabel('Median ED2 (mm)');
 legend('Location', 'northeast');
 set(gca, 'XDir', 'reverse');
 
-%exportgraphics(fig_tr, fullfile(results_dir, 'Performance_Trends_vs_SNR.pdf'), 'ContentType', 'vector');
+exportgraphics(fig_tr, fullfile(results_dir, 'Performance_Trends_vs_SNR.pdf'), 'ContentType', 'vector');

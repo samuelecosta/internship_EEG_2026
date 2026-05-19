@@ -19,11 +19,11 @@ white_matter_coupling = coupling.Difference(a=np.array([1e-3]))
 noise_vector = np.array([1e-6, 1e-6, 0.0, 1e-6, 1e-6, 0.0])
 hiss = noise.Additive(nsig=noise_vector)
 
-heunint = integrators.HeunStochastic(dt=0.05, noise=hiss)
+heunint = integrators.HeunStochastic(dt=0.1, noise=hiss)
 
 default_cortex = cortex.Cortex.from_file()
 default_cortex.region_mapping_data.connectivity = white_matter
-default_cortex.coupling_strength = np.array([1e-4]) 
+default_cortex.coupling_strength = np.array([1e-2]) 
 default_cortex.local_connectivity = local_connectivity.LocalConnectivity.from_file()
 
 default_cortex.configure()
@@ -34,12 +34,12 @@ target_vertex = 499
 n_vertices = surface_geometry.vertices.shape[0]
 target_coords = surface_geometry.vertices[target_vertex]
 
-actual_simulation_length = 300.0  
-burn_in_length = 200.0            
+actual_simulation_length = 1000.0  
+burn_in_length = 500.0            
 total_length = actual_simulation_length + burn_in_length
 
 x0_spatial = np.full(n_vertices, -2.4)
-patch_radius_mm = 15.0
+patch_radius_mm = 5.0
 distances = np.linalg.norm(surface_geometry.vertices - target_coords, axis=1)
 
 ez_indices = np.where(distances <= patch_radius_mm)[0]
@@ -47,11 +47,11 @@ x0_spatial[ez_indices] = -1.6
 
 epileptor = models.Epileptor(x0=x0_spatial)
 
-mon_source = monitors.TemporalAverage(period=1.0)
+mon_source = monitors.TemporalAverage(period=2.0)
 mon_eeg = monitors.EEG.from_file(
     sensors_fname='eeg_unitvector_62.txt.bz2',
     projection_fname='projection_eeg_62_surface_16k.mat',
-    period=1.0
+    period=2.0
 )
 what_to_watch = (mon_source, mon_eeg)
 
@@ -66,7 +66,7 @@ sim = simulator.Simulator(
 )
 
 sim.configure()
-print("Starting SUPER FAST stochastic TVB Epileptor simulation...")
+print("TVB Epileptor simulation...")
 
 all_sources = []
 all_eeg = []
@@ -89,7 +89,6 @@ SOURCES = SOURCES_RAW[burn_in_idx:, :]
 EEG = EEG_RAW[burn_in_idx:, :]
 TIME = TIME_RAW[burn_in_idx:] - TIME_RAW[burn_in_idx]
 
-# Centratura per MATLAB
 SOURCES = SOURCES - np.mean(SOURCES, axis=0)
 EEG = EEG - np.mean(EEG, axis=0)
 
@@ -107,11 +106,10 @@ scipy.io.savemat(mat_filepath, {
 
 print(f"Data saved successfully to {mat_filepath}")
 
-# 6. Plotting
 plt.figure(1, figsize=(10, 4))
 plt.plot(TIME, SOURCES.mean(axis=1), 'k', label='Global Mean Background', alpha=0.5)
 plt.plot(TIME, SOURCES[:, target_vertex], 'r', label='Epileptogenic Zone (Fast Discharges)')
-plt.title("Cortical Seizure Dynamics (Fast Euler, 300 ms window)")
+plt.title("Cortical Seizure Dynamics")
 plt.xlabel("Time (ms)")
 plt.ylabel("Amplitude")
 plt.legend()
