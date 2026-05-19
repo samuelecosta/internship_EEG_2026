@@ -172,7 +172,20 @@ Z = [sigma_12*N11,        -sigma(2)*N12,    zeros(nv1, nv3),  -2*D11_compl,     
      D21,                 -2*D22,            D23,             -S21/sigma(2),       sigma_23inv*S22];
 
 
-Z_inv = pinv(full(Z));
+e_null = [ones(nvtot, 1); zeros(nctot, 1)];
+
+e_null = e_null / norm(e_null);
+
+Z_def = Z + (e_null * e_null');
+
+pDipole_coords = surf_struct.cortical_surface.vertices; 
+n_cortical_sources = size(pDipole_coords, 2);
+pDipole_norms = surf_struct.cortical_surface.vertex_normals;
+
+norm_magnitude = vecnorm(pDipole_norms, 2, 1);
+pDipole_norms = pDipole_norms ./ norm_magnitude;
+
+RHS_matrix = zeros(size(Z, 1), n_cortical_sources);
 
 % Forward Solution
 for n = 1:n_cortical_sources
@@ -193,17 +206,19 @@ for n = 1:n_cortical_sources
         'computePotPatchRHSNum', rhs_PotPatch1, ...
         imagPartc1, funcSpacePatch1, posDipole, momDipole);
         
-    RHS = [+rhs_GradNPotPyramid_An1; zeros(nv2+nv3, 1); ...
-           -rhs_PotPatch1/sigma(1); zeros(nc2, 1)];
-
-    unknowns = Z_inv * RHS;
-    
-    Pot_omega3 = unknowns(1+nv1+nv2 : nvtot);
-    
-    G_three_layers(:, n) = Pot_omega3 - mean(Pot_omega3);
-    
-    if mod(n, 1000) == 0, fprintf('Sorgente %d/%d calcolata\n', n, n_cortical_sources); end
+    RHS_matrix(:, n) = [+rhs_GradNPotPyramid_An1; zeros(nv2+nv3, 1); ...
+                        -rhs_PotPatch1/sigma(1); zeros(nc2, 1)];
+                        
+    if mod(n, 2000) == 0
+        fprintf('  Elaborati vettori RHS: %d/%d\n', n, n_cortical_sources); 
+    end
 end
+
+unknowns = Z_def \ RHS_matrix;
+
+Pot_omega3 = unknowns(1+nv1+nv2 : nvtot, :);
+
+G_three_layers = Pot_omega3 - mean(Pot_omega3, 1);
 
 %% reorder vertices and save G
 

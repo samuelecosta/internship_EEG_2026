@@ -81,7 +81,7 @@ for snr_idx = 1:n_snr
     ed1_curr = zeros(n_sources, 4); 
     ed2_curr = zeros(n_sources, 4);
 
-    % --- Source Loop ---
+
     for n = 1:n_sources
         M_clean = G_tvb_centered(:, n); 
         noise_power = var(M_clean) / (10^(current_SNR/10));
@@ -90,28 +90,32 @@ for snr_idx = 1:n_snr
         
         real_source = pos_sources(:, n);
         dist_all = vecnorm(pos_sources - real_source, 2, 1)';
-        
-        % Inversions
+
         D_pinv_signed = T_pinv * M;
         D_MNE_signed = T_MNE * M;
         D_WMNE_signed = T_WMNE * M;
-        D_sLOR_signed = D_MNE_signed ./ sqrt(diag_R);
 
-        D_pinv = D_pinv_signed.^2;
-        D_MNE = D_MNE_signed.^2;
-        D_WMNE = D_WMNE_signed.^2;
-        D_sLOR = D_sLOR_signed.^2;
+        D_pinv_energy = D_pinv_signed.^2;
+        D_MNE_energy = D_MNE_signed.^2;
+        D_WMNE_energy = D_WMNE_signed.^2;
+
+        D_sLOR_stat = D_MNE_energy ./ diag_R;
         
-        estimates = {D_pinv, D_MNE, D_WMNE, D_sLOR};
+        estimates_loc = {D_pinv_energy, D_MNE_energy, D_WMNE_energy, D_sLOR_stat};
+        
+        estimates_disp = {D_pinv_energy, D_MNE_energy, D_WMNE_energy, D_MNE_energy};
         
         for m = 1:4
-            D_vec = estimates{m};
-            [~, idx_max] = max(D_vec); 
+            % 1. Localizzazione (ED1)
+            D_vec_loc = estimates_loc{m};
+            [~, idx_max] = max(D_vec_loc); 
             ed1_curr(n, m) = dist_all(idx_max);
 
-            energy_sum = sum(D_vec);
+            % 2. Spatial Extent/Dispersion (ED2)
+            D_vec_disp = estimates_disp{m};
+            energy_sum = sum(D_vec_disp);
             if energy_sum == 0, energy_sum = eps; end
-            ed2_curr(n, m) = sum(dist_all .* (D_vec / energy_sum));
+            ed2_curr(n, m) = sum(dist_all .* (D_vec_disp / energy_sum));
         end
         
         if mod(n, 2000) == 0

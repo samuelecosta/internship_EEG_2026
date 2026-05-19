@@ -36,8 +36,21 @@ if max(abs(tvb_vertices(:))) > 10 && max(abs(pos_sources(:))) < 1
     tvb_vertices = tvb_vertices / 1000; 
 end
 
-[idx_map_to_tvb, dists] = knnsearch(tvb_vertices', pos_sources');
-J_true_mapped = J_true_raw(idx_map_to_tvb, :);
+W_src_map = zeros(n_sources, size(tvb_vertices, 2));
+for i = 1:n_sources
+    dists = vecnorm(tvb_vertices - pos_sources(:, i), 2, 1);
+    [sorted_dists, idx] = sort(dists);
+    k_nearest = 3; 
+    
+    if sorted_dists(1) < 1e-6
+        W_src_map(i, idx(1)) = 1;
+    else
+        weights = 1 ./ sorted_dists(1:k_nearest);
+        W_src_map(i, idx(1:k_nearest)) = weights / sum(weights);
+    end
+end
+
+J_true_mapped = J_true_raw * W_src_map';
 
 if isfield(tvb_data, 'activation_center')
     target_idx_py = double(tvb_data.activation_center) + 1; 
@@ -48,11 +61,11 @@ else
 end
 
 activation_center_pos = pos_sources(:, target_idx);
-dist_from_target = vecnorm(pos_sources - activation_center_pos, 2, 1)'; 
+dist_from_target = vecnorm(pos_sources - activation_center_pos, 2, 1)';
 
 %% Forward Problem
 G_tvb_centered = G_tvb - mean(G_tvb, 1);
-M_clean = G_tvb_centered * J_true_raw; 
+M_clean = G_tvb_centered * J_true_raw;
 
 %% Sensors Mapping
 W_map = zeros(n_sensors, n_vertices);
@@ -103,8 +116,7 @@ for snr_idx = 1:n_snr
     alpha_opt = (trace(A) / n_sensors) * (10^(-current_SNR / 10));
     T_MNE = G_sym_sens' / (A + (alpha_opt * I));
     diag_R = sum(T_MNE .* G_sym_sens', 2);
-    diag_R(diag_R < eps) = eps; 
-    T_sLOR = T_MNE ./ sqrt(diag_R);
+    diag_R(diag_R < eps) = eps;
 
     t_ed1 = zeros(n_trials, 1); 
     t_ed2 = zeros(n_trials, 1); 
@@ -120,33 +132,28 @@ for snr_idx = 1:n_snr
         noise = sqrt(noise_power) * randn(size(M_clean));
         M_noisy = M_clean + noise;
 
-        J_est_signed = (T_sLOR * M_noisy);
-        J_est_power = J_est_signed.^2; 
-
-        max_pow = max(J_est_power(:));
-        if max_pow > 0
-            J_est_power = J_est_power / max_pow;
-        end
-
-        J_est_energy = sum(J_est_power, 2); 
+        % 1. Stima Fisica (MNE)
+        J_est_MNE = T_MNE * M_noisy;
+        J_est_energy = J_est_MNE.^2;
         
-        [~, est_max_idx] = max(J_est_energy);
+        J_est_stat = J_est_energy ./ diag_R; 
         
+        % ED1
+        [~, est_max_idx] = max(sum(J_est_stat, 2));
         t_ed1(trial) = dist_from_target(est_max_idx) * 1000; 
         
-        % ED2 basato sull'energia totale
-        energy_sum = sum(J_est_energy);
+        % ED2
+        J_est_total_energy = sum(J_est_energy, 2);
+        energy_sum = sum(J_est_total_energy);
         if energy_sum == 0, energy_sum = eps; end
-        t_ed2(trial) = sum(dist_from_target .* (J_est_energy / energy_sum)) * 1000;
+        t_ed2(trial) = sum(dist_from_target .* (J_est_total_energy / energy_sum)) * 1000;
         
-        % Temporal Correlation (Confrontiamo l'onda del bersaglio)
         ts_true = J_true_mapped(target_idx, :);
-        ts_est  = J_est_signed(est_max_idx, :);
+        ts_est  = J_est_MNE(est_max_idx, :);
         r_temp = corrcoef(ts_true, ts_est);
         t_corr(trial) = r_temp(1,2);
         
-        % Spatial Correlation (Confrontiamo le mappe di ENERGIA spaziale)
-        r_spat = corrcoef(J_true_peak_clean, J_est_energy);
+        r_spat = corrcoef(J_true_peak_clean, J_est_total_energy);
         t_spat(trial) = r_spat(1,2);
         
         % Spatio-Temporal Correlation
