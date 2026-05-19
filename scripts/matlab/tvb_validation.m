@@ -11,7 +11,7 @@ load(fullfile(mat_dir, "Surfaces_structure.mat"), 'surf_struct');
 load(fullfile(mat_dir, "G_three_layers.mat"), 'G_three_layers'); 
 G_tvb = h5read(fullfile(h5_dir, "ProjectionMatrix_EEG.h5"), "/projection_data")';
 
-tvb_data = load(fullfile(mat_dir, "tvb_gaussian_patch_data.mat")); %change this to select the data
+tvb_data = load(fullfile(mat_dir, "tvb_epilepsy_data.mat")); %change this to select the data
 J_true_raw = double(tvb_data.J_true); 
 time = double(tvb_data.time);
 n_time = length(time);
@@ -81,23 +81,23 @@ G_sym_sens = W_map * G_three_layers;
 G_sym_sens = G_sym_sens - mean(G_sym_sens, 1);
 
 %% Validation Loop (sLORETA)
+
+true_target_power = J_true_mapped(target_idx, :).^2;
+power_weights = true_target_power / sum(true_target_power);
+[~, absolute_peak_t] = max(true_target_power);
+
+threshold = 0.25; %for time window for metrics
+active_mask = (true_target_power > (threshold * max(true_target_power)));
+
 SNR_levels = [25, 15, 10, 5, 0]; 
 n_snr = length(SNR_levels);
 
 n_trials = 50; %monte carlo
 
-ED1_trend = zeros(n_snr, 1); 
-ED2_trend = zeros(n_snr, 1); 
-Temp_Corr_trend = zeros(n_snr, 1);
-Spat_Corr_trend = zeros(n_snr, 1); 
-ST_Corr_trend = zeros(n_snr, 1); 
-
-% Arrays per limiti di errore (IQR)
-err_neg_ED1 = zeros(n_snr, 1); err_pos_ED1 = zeros(n_snr, 1);
-err_neg_ED2 = zeros(n_snr, 1); err_pos_ED2 = zeros(n_snr, 1);
-err_neg_Corr = zeros(n_snr, 1); err_pos_Corr = zeros(n_snr, 1);
-err_neg_Spat = zeros(n_snr, 1); err_pos_Spat = zeros(n_snr, 1); 
-err_neg_ST = zeros(n_snr, 1); err_pos_ST = zeros(n_snr, 1);
+ED1_trend = zeros(n_snr, 1); err_neg_ED1 = zeros(n_snr, 1); err_pos_ED1 = zeros(n_snr, 1);
+ED2_trend = zeros(n_snr, 1); err_neg_ED2 = zeros(n_snr, 1); err_pos_ED2 = zeros(n_snr, 1);
+Env_Corr_trend = zeros(n_snr, 1); err_neg_Corr = zeros(n_snr, 1); err_pos_Corr = zeros(n_snr, 1);
+Spat_Corr_trend = zeros(n_snr, 1); err_neg_Spat = zeros(n_snr, 1); err_pos_Spat = zeros(n_snr, 1);
 
 I = eye(size(G_sym_sens, 1));
 c_v = double(pos_sources);
@@ -117,159 +117,116 @@ for snr_idx = 1:n_snr
     T_MNE = G_sym_sens' / (A + (alpha_opt * I));
     diag_R = sum(T_MNE .* G_sym_sens', 2);
     diag_R(diag_R < eps) = eps;
-
+    
     t_ed1 = zeros(n_trials, 1); 
     t_ed2 = zeros(n_trials, 1); 
-    t_corr = zeros(n_trials, 1);
-    t_spat = zeros(n_trials, 1);
-    t_st = zeros(n_trials, 1);
-
-    J_true_peak_clean = sum(J_true_mapped.^2, 2);
-    J_true_peak_clean = J_true_peak_clean - min(J_true_peak_clean);
+    t_env_corr = zeros(n_trials, 1);
+    t_spat_corr = zeros(n_trials, 1);
     
     for trial = 1:n_trials
         noise_power = var(M_clean(:)) / (10^(current_SNR/10));
         noise = sqrt(noise_power) * randn(size(M_clean));
         M_noisy = M_clean + noise;
-
-        % 1. Stima Fisica (MNE)
+        
+        % Inverse sLORETA
         J_est_MNE = T_MNE * M_noisy;
         J_est_energy = J_est_MNE.^2;
-        
         J_est_stat = J_est_energy ./ diag_R; 
         
-        % ED1
-        [~, est_max_idx] = max(sum(J_est_stat, 2));
-        t_ed1(trial) = dist_from_target(est_max_idx) * 1000; 
+        % 1. ED1 Istant
+        [~, max_verts_all_t] = max(J_est_stat, [], 1);
+        ed1_inst = dist_from_target(max_verts_all_t)' * 1000;
         
-        % ED2
-        J_est_total_energy = sum(J_est_energy, 2);
-        energy_sum = sum(J_est_total_energy);
-        if energy_sum == 0, energy_sum = eps; end
-        t_ed2(trial) = sum(dist_from_target .* (J_est_total_energy / energy_sum)) * 1000;
+        % 2. ED2 Istant
+        energy_sum_all_t = sum(J_est_stat, 1);
+        energy_sum_all_t(energy_sum_all_t == 0) = eps;
+        ed2_inst = (dist_from_target' * J_est_stat) ./ energy_sum_all_t * 1000; 
         
-        ts_true = J_true_mapped(target_idx, :);
-        ts_est  = J_est_MNE(est_max_idx, :);
-        r_temp = corrcoef(ts_true, ts_est);
-        t_corr(trial) = r_temp(1,2);
+        t_ed1(trial) = sum(ed1_inst(active_mask) .* power_weights(active_mask)) / sum(power_weights(active_mask));
+        t_ed2(trial) = sum(ed2_inst(active_mask) .* power_weights(active_mask)) / sum(power_weights(active_mask));
         
-        r_spat = corrcoef(J_true_peak_clean, J_est_total_energy);
-        t_spat(trial) = r_spat(1,2);
+        % 3. Envelope Temporal Correlation
+        [~, best_overall_vert] = max(J_est_stat * power_weights');
+        env_true = abs(hilbert(J_true_mapped(target_idx, :)'))'; 
+        env_est  = abs(hilbert(J_est_MNE(best_overall_vert, :)'))';
+        r_env = corrcoef(env_true, env_est);
+        t_env_corr(trial) = r_env(1,2);
         
-        % Spatio-Temporal Correlation
-        J_true_flat = abs(J_true_mapped(:));
-        J_est_flat  = abs(J_est_MNE(:));
-        r_st = corrcoef(J_true_flat, J_est_flat);
-        t_st(trial) = r_st(1,2);
+        % 4. Spatial Correlation at peak
+        r_spat = corrcoef(J_true_mapped(:, absolute_peak_t).^2, J_est_stat(:, absolute_peak_t));
+        t_spat_corr(trial) = r_spat(1,2);
     end
     
     % Metrics
     ED1_trend(snr_idx) = median(t_ed1);
-    ED2_trend(snr_idx) = median(t_ed2);
-    Temp_Corr_trend(snr_idx) = median(t_corr);
-    Spat_Corr_trend(snr_idx) = median(t_spat);
-    ST_Corr_trend(snr_idx) = median(t_st);
-    
     err_neg_ED1(snr_idx) = ED1_trend(snr_idx) - prctile(t_ed1, 25);
     err_pos_ED1(snr_idx) = prctile(t_ed1, 75) - ED1_trend(snr_idx);
     
+    ED2_trend(snr_idx) = median(t_ed2);
     err_neg_ED2(snr_idx) = ED2_trend(snr_idx) - prctile(t_ed2, 25);
     err_pos_ED2(snr_idx) = prctile(t_ed2, 75) - ED2_trend(snr_idx);
     
-    err_neg_Corr(snr_idx) = Temp_Corr_trend(snr_idx) - prctile(t_corr, 25);
-    err_pos_Corr(snr_idx) = prctile(t_corr, 75) - Temp_Corr_trend(snr_idx);
+    Env_Corr_trend(snr_idx) = median(t_env_corr);
+    err_neg_Corr(snr_idx) = Env_Corr_trend(snr_idx) - prctile(t_env_corr, 25);
+    err_pos_Corr(snr_idx) = prctile(t_env_corr, 75) - Env_Corr_trend(snr_idx);
     
-    err_neg_Spat(snr_idx) = Spat_Corr_trend(snr_idx) - prctile(t_spat, 25);
-    err_pos_Spat(snr_idx) = prctile(t_spat, 75) - Spat_Corr_trend(snr_idx);
-    
-    err_neg_ST(snr_idx) = ST_Corr_trend(snr_idx) - prctile(t_st, 25);
-    err_pos_ST(snr_idx) = prctile(t_st, 75) - ST_Corr_trend(snr_idx);
+    Spat_Corr_trend(snr_idx) = median(t_spat_corr);
+    err_neg_Spat(snr_idx) = Spat_Corr_trend(snr_idx) - prctile(t_spat_corr, 25);
+    err_pos_Spat(snr_idx) = prctile(t_spat_corr, 75) - Spat_Corr_trend(snr_idx);
     
     if current_SNR == 10
 
-        fig_3d = figure;
-        fig_3d.WindowState = 'maximized';
+        fig_3d = figure; fig_3d.WindowState = 'maximized';
         
-        main_title_str = sprintf('EEG Source Localization Comparison | Method: sLORETA | SNR = %d dB | Median ED1 = %.1f mm', ...
-            current_SNR, ED1_trend(snr_idx));
+        main_title_str = sprintf('Local peak (T = %.1f ms) | sLORETA | SNR = %d dB', ...
+            time(absolute_peak_t), current_SNR);
         annotation('textbox', [0, 0.95, 1, 0.05], 'String', main_title_str, ...
-            'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', ...
-            'FontSize', 16, 'FontWeight', 'bold');
+            'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'FontSize', 14, 'FontWeight', 'bold');
             
-        annotation('textbox', [0, 0.88, 0.5, 0.05], 'String', 'TVB Ground Truth Activity', ...
-            'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', ...
-            'FontSize', 14, 'FontWeight', 'bold');
-            
-        annotation('textbox', [0.5, 0.88, 0.5, 0.05], 'String', 'sLORETA Estimate (Single Trial)', ...
-            'EdgeColor', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', ...
-            'FontSize', 14, 'FontWeight', 'bold');
-        
-        J_true_energy_map = sum(J_true_mapped.^2, 2);
-        J_true_energy_map = J_true_energy_map - min(J_true_energy_map); 
-        if max(J_true_energy_map) > 0
-            J_true_energy_map = J_true_energy_map / max(J_true_energy_map);
-        end
-        cmax = 1.0; 
-        
+        J_true_snap = J_true_mapped(:, absolute_peak_t).^2;
+        J_true_snap = J_true_snap / max(J_true_snap); 
         ax1 = nexttile;
-        plot_brain_surface(c_v, c_f, VN, J_true_energy_map, '', [-90, 0], cmax, activation_center_pos);
+        plot_brain_surface(c_v, c_f, VN, J_true_snap, 'Ground Truth (Peak Power)', [-75, 0], 1.0, activation_center_pos);
         
+        [~, snap_est_max] = max(J_est_stat(:, absolute_peak_t));
+        J_est_snap = J_est_stat(:, absolute_peak_t);
+        J_est_snap = J_est_snap / max(J_est_snap);
         ax2 = nexttile;
-
-        J_est_energy_plot = sum(J_est_energy, 2);
-        J_est_energy_plot = J_est_energy_plot / max(J_est_energy_plot);
-        plot_brain_surface(c_v, c_f, VN, J_est_energy_plot, '', [-90, 0], cmax, pos_sources(:, est_max_idx));
+        plot_brain_surface(c_v, c_f, VN, J_est_snap, 'sLORETA Estimate', [-75, 0], 1.0, pos_sources(:, snap_est_max));
         
-        cb = colorbar(ax2);
-        cb.Layout.Tile = 'east'; 
-        cb.Ticks = 0:0.2:1.0;
-        ylabel(cb, 'Normalized Amplitude', 'FontSize', 12);
-        
-        linkaxes([ax1, ax2]); 
-        linkprop([ax1, ax2], {'CameraPosition', 'CameraTarget', 'CameraUpVector', 'CameraViewAngle'});
-
-        %change based on data
-        tmp_filename = sprintf('tvb_validation_gaussian_SNR_%02d.pdf', current_SNR);
-        exportgraphics(fig_3d, fullfile(results_dir, tmp_filename), 'ContentType', 'image', 'Resolution', 600);
+        cb = colorbar(ax2); cb.Layout.Tile = 'east'; ylabel(cb, 'Normalized Power', 'FontSize', 12);
+        linkaxes([ax1, ax2]); linkprop([ax1, ax2], {'CameraPosition', 'CameraTarget', 'CameraUpVector', 'CameraViewAngle'});
+        exportgraphics(fig_3d, fullfile(results_dir, sprintf('tvb_validation_epilepsy_SNR_%02d_v2.pdf', current_SNR)), 'ContentType', 'image', 'Resolution', 600);
     end
 end
 
 %% Metrics
-fig_tr = figure;
-fig_tr.WindowState = 'maximized';
-
+fig_tr = figure; fig_tr.WindowState = 'maximized';
 max_ed1_lim = max(ED1_trend + err_pos_ED1) + 5; 
 if max_ed1_lim < 15, max_ed1_lim = 15; end
 
-% ED1
-subplot(2, 3, 1); hold on; grid on;
+% ED1 (Weighted)
+subplot(2, 2, 1); hold on; grid on;
 errorbar(SNR_levels, ED1_trend, err_neg_ED1, err_pos_ED1, 'k-o', 'LineWidth', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'r', 'CapSize', 5);
 set(gca, 'XDir', 'reverse'); ylim([0, max_ed1_lim]); 
-title('Localization Error (ED1)'); xlabel('SNR (dB)'); ylabel('Median ED1 (mm)'); 
+title('Energy-Weighted Localization Error (ED1)'); xlabel('SNR (dB)'); ylabel('Median Weighted ED1 (mm)'); 
 
-% ED2
-subplot(2, 3, 2); hold on; grid on;
+% ED2 (Weighted)
+subplot(2, 2, 2); hold on; grid on;
 errorbar(SNR_levels, ED2_trend, err_neg_ED2, err_pos_ED2, 'b-s', 'LineWidth', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'c', 'CapSize', 5);
 set(gca, 'XDir', 'reverse'); ylim([0, max(ED2_trend + err_pos_ED2) + 5]); 
-title('Spatial Dispersion (ED2)'); xlabel('SNR (dB)'); ylabel('Median ED2 (mm)'); 
+title('Energy-Weighted Spatial Dispersion (ED2)'); xlabel('SNR (dB)'); ylabel('Median Weighted ED2 (mm)'); 
 
-% Temporal Correlation
-subplot(2, 3, 3); hold on; grid on;
-errorbar(SNR_levels, Temp_Corr_trend, err_neg_Corr, err_pos_Corr, 'g-d', 'LineWidth', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'y', 'CapSize', 5);
+% Envelope Temporal Correlation
+subplot(2, 2, 3); hold on; grid on;
+errorbar(SNR_levels, Env_Corr_trend, err_neg_Corr, err_pos_Corr, 'g-d', 'LineWidth', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'y', 'CapSize', 5);
 set(gca, 'XDir', 'reverse'); ylim([0 1.1]);
-title('Temporal Correlation'); xlabel('SNR (dB)'); ylabel('Pearson r'); 
+title('Envelope Temporal Correlation'); xlabel('SNR (dB)'); ylabel('Pearson r (Hilbert Envelope)'); 
 
-% Spatial Correlation
-subplot(2, 3, 4); hold on; grid on;
+% Peak Spatial Correlation
+subplot(2, 2, 4); hold on; grid on;
 errorbar(SNR_levels, Spat_Corr_trend, err_neg_Spat, err_pos_Spat, 'm-^', 'LineWidth', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'w', 'CapSize', 5);
 set(gca, 'XDir', 'reverse'); ylim([0 1.1]);
-title('Spatial Correlation (at Peak)'); xlabel('SNR (dB)'); ylabel('Pearson r'); 
+title('Peak-Frame Spatial Correlation'); xlabel('SNR (dB)'); ylabel('Pearson r'); 
 
-% Spatio-Temporal Correlation
-subplot(2, 3, 5); hold on; grid on;
-errorbar(SNR_levels, ST_Corr_trend, err_neg_ST, err_pos_ST, 'c-v', 'LineWidth', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'k', 'CapSize', 5);
-set(gca, 'XDir', 'reverse'); ylim([0 1.1]);
-title('Spatio-Temporal Correlation'); xlabel('SNR (dB)'); ylabel('Pearson r'); 
-
-%change based on data
-exportgraphics(fig_tr, fullfile(results_dir,'tvb_validation_gaussian_metrics.pdf'), 'ContentType', 'vector');
+exportgraphics(fig_tr, fullfile(results_dir,'tvb_validation_epilepsy_metrics_v2.pdf'), 'ContentType', 'vector');
