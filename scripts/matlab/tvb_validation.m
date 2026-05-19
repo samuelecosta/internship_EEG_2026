@@ -11,7 +11,7 @@ load(fullfile(mat_dir, "Surfaces_structure.mat"), 'surf_struct');
 load(fullfile(mat_dir, "G_three_layers.mat"), 'G_three_layers'); 
 G_tvb = h5read(fullfile(h5_dir, "ProjectionMatrix_EEG.h5"), "/projection_data")';
 
-tvb_data = load(fullfile(mat_dir, "tvb_gaussian_patch_data.mat")); %change this to select the data
+tvb_data = load(fullfile(mat_dir, "tvb_epilepsy_data.mat")); %change this to select the data
 J_true_raw = double(tvb_data.J_true); 
 time = double(tvb_data.time);
 n_time = length(time);
@@ -50,7 +50,7 @@ for i = 1:n_sources
     end
 end
 
-J_true_mapped = J_true_raw * W_src_map';
+J_true_mapped = W_src_map * J_true_raw;
 
 if isfield(tvb_data, 'activation_center')
     target_idx_py = double(tvb_data.activation_center) + 1; 
@@ -158,7 +158,7 @@ for snr_idx = 1:n_snr
         
         % Spatio-Temporal Correlation
         J_true_flat = abs(J_true_mapped(:));
-        J_est_flat  = abs(J_est_signed(:));
+        J_est_flat  = abs(J_est_MNE(:));
         r_st = corrcoef(J_true_flat, J_est_flat);
         t_st(trial) = r_st(1,2);
     end
@@ -216,7 +216,7 @@ for snr_idx = 1:n_snr
         
         ax2 = nexttile;
 
-        J_est_energy_plot = sum(J_est_power, 2);
+        J_est_energy_plot = sum(J_est_energy, 2);
         J_est_energy_plot = J_est_energy_plot / max(J_est_energy_plot);
         plot_brain_surface(c_v, c_f, VN, J_est_energy_plot, '', [-90, 0], cmax, pos_sources(:, est_max_idx));
         

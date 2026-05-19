@@ -95,7 +95,7 @@ nv2 = calllib(library_name, 'getNbPyramidFunctions', funcSpacePyramid2);
 nv3 = calllib(library_name, 'getNbPyramidFunctions', funcSpacePyramid3);
 
 
-nctot = nc1 + nc2 + nc3;
+nctot = nc1 + nc2;
 nvtot = nv1 + nv2 + nv3;
 
 %% S matrices
@@ -151,15 +151,6 @@ save('Dsph_real.mat', 'D11','D11_compl','D12','D21_compl','D21','D12_compl','D22
 
 %% Compute G
 
-pDipole_coords = surf_struct.cortical_surface.vertices; 
-n_cortical_sources = size(pDipole_coords, 2);
-pDipole_norms = surf_struct.cortical_surface.vertex_normals;
-
-norm_magnitude = vecnorm(pDipole_norms, 2, 1);
-pDipole_norms = pDipole_norms ./ norm_magnitude;
-
-G_three_layers = zeros(nv3, n_cortical_sources);
-
 sigma_12 = sigma(1) + sigma(2);
 sigma_12inv = 1/sigma(1) + 1/sigma(2);
 sigma_23 = sigma(2) + sigma(3);
@@ -210,7 +201,7 @@ for n = 1:n_cortical_sources
                         -rhs_PotPatch1/sigma(1); zeros(nc2, 1)];
                         
     if mod(n, 2000) == 0
-        fprintf('  Elaborati vettori RHS: %d/%d\n', n, n_cortical_sources); 
+        fprintf('%d/%d\n', n, n_cortical_sources); 
     end
 end
 
