@@ -13,6 +13,9 @@ G_tvb = h5read(fullfile(h5_dir, "ProjectionMatrix_EEG.h5"), "/projection_data")'
 
 tvb_data = load(fullfile(mat_dir, "tvb_epilepsy_data.mat")); %change this to select the data
 J_true_raw = double(tvb_data.J_true); 
+
+J_true_raw = J_true_raw - mean(J_true_raw, 2);
+
 time = double(tvb_data.time);
 n_time = length(time);
 
@@ -147,8 +150,14 @@ for snr_idx = 1:n_snr
         
         % 3. Envelope Temporal Correlation
         [~, best_overall_vert] = max(J_est_stat * power_weights');
-        env_true = abs(hilbert(J_true_mapped(target_idx, :)'))'; 
-        env_est  = abs(hilbert(J_est_MNE(best_overall_vert, :)'))';
+        sig_true = J_true_mapped(target_idx, :);
+        sig_est  = J_est_MNE(best_overall_vert, :);
+        sig_true = sig_true - mean(sig_true);
+        sig_est  = sig_est - mean(sig_est);
+
+        env_true = abs(hilbert(sig_true)); 
+        env_est  = abs(hilbert(sig_est));
+        
         r_env = corrcoef(env_true, env_est);
         t_env_corr(trial) = r_env(1,2);
         
@@ -186,13 +195,13 @@ for snr_idx = 1:n_snr
         J_true_snap = J_true_mapped(:, absolute_peak_t).^2;
         J_true_snap = J_true_snap / max(J_true_snap); 
         ax1 = nexttile;
-        plot_brain_surface(c_v, c_f, VN, J_true_snap, 'Ground Truth (Peak Power)', [-75, 0], 1.0, activation_center_pos);
+        plot_brain_surface(c_v, c_f, VN, J_true_snap, 'Ground Truth (Peak Power)', [-70, 0], 1.0, activation_center_pos);
         
         [~, snap_est_max] = max(J_est_stat(:, absolute_peak_t));
         J_est_snap = J_est_stat(:, absolute_peak_t);
         J_est_snap = J_est_snap / max(J_est_snap);
         ax2 = nexttile;
-        plot_brain_surface(c_v, c_f, VN, J_est_snap, 'sLORETA Estimate', [-75, 0], 1.0, pos_sources(:, snap_est_max));
+        plot_brain_surface(c_v, c_f, VN, J_est_snap, 'sLORETA Estimate', [-70, 0], 1.0, pos_sources(:, snap_est_max));
         
         cb = colorbar(ax2); cb.Layout.Tile = 'east'; ylabel(cb, 'Normalized Power', 'FontSize', 12);
         linkaxes([ax1, ax2]); linkprop([ax1, ax2], {'CameraPosition', 'CameraTarget', 'CameraUpVector', 'CameraViewAngle'});
@@ -220,13 +229,78 @@ title('Energy-Weighted Spatial Dispersion (ED2)'); xlabel('SNR (dB)'); ylabel('M
 % Envelope Temporal Correlation
 subplot(2, 2, 3); hold on; grid on;
 errorbar(SNR_levels, Env_Corr_trend, err_neg_Corr, err_pos_Corr, 'g-d', 'LineWidth', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'y', 'CapSize', 5);
-set(gca, 'XDir', 'reverse'); ylim([0 1.1]);
+set(gca, 'XDir', 'reverse'); ylim([-0.2 1.1]);
 title('Envelope Temporal Correlation'); xlabel('SNR (dB)'); ylabel('Pearson r (Hilbert Envelope)'); 
 
 % Peak Spatial Correlation
 subplot(2, 2, 4); hold on; grid on;
 errorbar(SNR_levels, Spat_Corr_trend, err_neg_Spat, err_pos_Spat, 'm-^', 'LineWidth', 2, 'MarkerSize', 8, 'MarkerFaceColor', 'w', 'CapSize', 5);
-set(gca, 'XDir', 'reverse'); ylim([0 1.1]);
+set(gca, 'XDir', 'reverse'); ylim([-0.2 1.1]);
 title('Peak-Frame Spatial Correlation'); xlabel('SNR (dB)'); ylabel('Pearson r'); 
 
 exportgraphics(fig_tr, fullfile(results_dir,'tvb_validation_epilepsy_metrics_v2.pdf'), 'ContentType', 'vector');
+
+%% 3d video
+
+video_filename = fullfile(results_dir, 'tvb_evolution_epilepsy_video.mp4');
+v = VideoWriter(video_filename, 'MPEG-4');
+v.FrameRate = 30;
+v.Quality = 100;
+open(v);
+
+fig_vid = figure; 
+fig_vid.WindowState = 'maximized';
+set(fig_vid, 'Color', 'w');
+
+t_layout = tiledlayout(1, 2, 'Padding', 'compact', 'TileSpacing', 'compact');
+
+target_SNR = 10;
+
+A_vid = G_sym_sens * G_sym_sens';
+alpha_opt_vid = (trace(A_vid) / n_sensors) * (10^(-target_SNR / 10));
+T_MNE_vid = G_sym_sens' / (A_vid + (alpha_opt_vid * I));
+diag_R_vid = sum(T_MNE_vid .* G_sym_sens', 2);
+diag_R_vid(diag_R_vid < eps) = eps;
+noise_power_vid = var(M_clean(:)) / (10^(target_SNR/10));
+
+rng('default'); 
+
+noise_vid = sqrt(noise_power_vid) * randn(size(M_clean));
+M_noisy_vid = M_clean + noise_vid;
+J_est_MNE_vid = T_MNE_vid * M_noisy_vid;
+J_est_stat_vid = (J_est_MNE_vid.^2) ./ diag_R_vid;
+
+total_desired_frames = 1800; 
+step_frames = max(1, floor(n_time / total_desired_frames));
+
+global_max_true = max(J_true_mapped(:).^2);
+global_max_est = prctile(J_est_stat_vid(:), 99.9);
+
+for t = 1:step_frames:n_time
+    curr_true = (J_true_mapped(:, t).^2) / global_max_true;
+    curr_est = J_est_stat_vid(:, t) / global_max_est;
+    curr_true(curr_true > 1) = 1;
+    curr_est(curr_est > 1) = 1;
+    [~, snap_est_max] = max(curr_est);
+    
+    clf(fig_vid);
+    t_layout = tiledlayout(1, 2, 'Padding', 'compact', 'TileSpacing', 'compact');
+
+    title(t_layout, sprintf('Time: %.1f ms | Ground Truth vs sLORETA | SNR: 10 dB', time(t)), ...
+          'FontSize', 16, 'FontWeight', 'bold');
+
+    ax1 = nexttile;
+    plot_brain_surface(c_v, c_f, VN, curr_true, '', [-60, 0], 1.0);
+
+    ax2 = nexttile;
+    plot_brain_surface(c_v, c_f, VN, curr_est, '', [-60, 0], 1.0);
+
+    cb = colorbar(ax2); 
+    cb.Layout.Tile = 'east'; 
+    ylabel(cb, 'Normalized Power', 'FontSize', 10);
+    
+    drawnow limitrate;
+    frame = getframe(fig_vid);
+    writeVideo(v, frame);
+end
+close(v);
