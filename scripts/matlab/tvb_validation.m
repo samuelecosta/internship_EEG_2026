@@ -212,13 +212,13 @@ for snr_idx = 1:n_snr
         cmax = 1.0; 
         
         ax1 = nexttile;
-        plot_brain_surface(c_v, c_f, VN, J_true_energy_map, '', [-90, 0], cmax, activation_center_pos);
+        plot_brain_surface(c_v, c_f, VN, J_true_energy_map, '', [-75, 0], cmax, activation_center_pos);
         
         ax2 = nexttile;
 
         J_est_energy_plot = sum(J_est_energy, 2);
         J_est_energy_plot = J_est_energy_plot / max(J_est_energy_plot);
-        plot_brain_surface(c_v, c_f, VN, J_est_energy_plot, '', [-90, 0], cmax, pos_sources(:, est_max_idx));
+        plot_brain_surface(c_v, c_f, VN, J_est_energy_plot, '', [-75, 0], cmax, pos_sources(:, est_max_idx));
         
         cb = colorbar(ax2);
         cb.Layout.Tile = 'east'; 
