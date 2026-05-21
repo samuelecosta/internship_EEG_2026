@@ -1,4 +1,4 @@
-function [points, cells, normals, dim, nNodes, matId] = readMshFile_Samuele(fileName)
+function [points, cells, normals, dim, nNodes, matId] = readMshFile(fileName)
 %READMSHFILE Read a Gmsh ASCII 2.2 .msh surface mesh made of triangles
 %
 % Output:
@@ -34,9 +34,7 @@ function [points, cells, normals, dim, nNodes, matId] = readMshFile_Samuele(file
     dim = 3;
     nNodes = 3;
 
-    %% -------------------------
     % Find $Nodes section
-    %% -------------------------
     line = '';
     while ischar(line)
         line = strtrim(fgetl(fileID));
@@ -81,9 +79,7 @@ function [points, cells, normals, dim, nNodes, matId] = readMshFile_Samuele(file
         id2idx(nodeIds) = 1:nPoint;
     end
 
-    %% -------------------------
     % Find $Elements section
-    %% -------------------------
     line = '';
     while ischar(line)
         line = strtrim(fgetl(fileID));
@@ -154,9 +150,7 @@ function [points, cells, normals, dim, nNodes, matId] = readMshFile_Samuele(file
         cells = id2idx(cells);
     end
 
-    %% -------------------------
     % Normals
-    %% -------------------------
     v1 = points(cells(:,2), :) - points(cells(:,1), :);
     v2 = points(cells(:,3), :) - points(cells(:,1), :);
     normals = cross(v1, v2, 2);
@@ -166,9 +160,7 @@ function [points, cells, normals, dim, nNodes, matId] = readMshFile_Samuele(file
     nrm(zeroMask) = 1;  % avoid division by zero
     normals = normals ./ nrm;
 
-    %% -------------------------
     % Output metadata
-    %% -------------------------
     dim = size(points, 2);   % should be 3
     nNodes = size(cells, 2); % for triangles = 3
 end
