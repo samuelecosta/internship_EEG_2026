@@ -53,15 +53,15 @@ load(struct_path);
 
 sigma = [1.0, 0.01, 1.0]; %same as projection matrix from TVB
 
-[points1, cells1, normals1, dim1, nNode1] = readMshFile_Samuele(brain_skull_msh);
+[points1, cells1, normals1, dim1, nNode1] = readMshFile(brain_skull_msh);
 nPoints1 = size(points1,1);
 nCells1 = size(cells1,1);
 
-[points2, cells2, normals2, dim2, nNode2] = readMshFile_Samuele(skull_skin_msh);
+[points2, cells2, normals2, dim2, nNode2] = readMshFile(skull_skin_msh);
 nPoints2 = size(points2,1);
 nCells2 = size(cells2,1);
 
-[points3, cells3, normals3, dim3, nNode3] = readMshFile_Samuele(skin_air_msh);
+[points3, cells3, normals3, dim3, nNode3] = readMshFile(skin_air_msh);
 nPoints3 = size(points3,1);
 nCells3 = size(cells3,1);
 

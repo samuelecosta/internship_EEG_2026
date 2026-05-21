@@ -34,8 +34,8 @@ target_vertex = 499
 n_vertices = surface_geometry.vertices.shape[0]
 target_coords = surface_geometry.vertices[target_vertex]
 
-actual_simulation_length = 1000.0  
-burn_in_length = 500.0            
+actual_simulation_length = 3000.0  
+burn_in_length = 2000.0            
 total_length = actual_simulation_length + burn_in_length
 
 x0_spatial = np.full(n_vertices, -2.4)
@@ -88,9 +88,6 @@ burn_in_idx = np.argmax(TIME_RAW >= burn_in_length)
 SOURCES = SOURCES_RAW[burn_in_idx:, :]
 EEG = EEG_RAW[burn_in_idx:, :]
 TIME = TIME_RAW[burn_in_idx:] - TIME_RAW[burn_in_idx]
-
-SOURCES = SOURCES - np.mean(SOURCES, axis=0)
-EEG = EEG - np.mean(EEG, axis=0)
 
 mat_filepath = os.path.join(mat_dir, "tvb_epilepsy_data.mat")
 
