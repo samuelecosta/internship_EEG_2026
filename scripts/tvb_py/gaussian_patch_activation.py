@@ -12,6 +12,9 @@ results_dir = os.path.join(project_root, "simulations", "python")
 if not os.path.exists(results_dir):
     os.makedirs(results_dir)
 
+if not os.path.exists(mat_dir):
+    os.makedirs(mat_dir)
+
 # Initialise a Model, Coupling, and Connectivity.
 oscillator = models.Generic2dOscillator(a=np.array([1.0]), b=np.array([-1.0]))
 
